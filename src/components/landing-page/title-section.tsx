@@ -1,5 +1,6 @@
 import React from 'react'
 
+//we have designed title section to use in landing page
 interface TitleSectionProps {
     title: string;
     subheading: string;
