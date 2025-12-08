@@ -170,7 +170,7 @@ const Header = () => {
               <ul className="grid w-[400px] gap-3 p-4  md:grid-row-2  ">
                 <ListItem
                   title="Pro Plan"
-                  href={'#'}
+                  href={'#pricing'}
                 >
                   Unlock full power with collaboration.
                 </ListItem>

@@ -81,6 +81,7 @@ const HomePage = () => {
             right-0
             absolute
             z-10
+           
           "
           ></div>
         </div>

@@ -35,7 +35,8 @@ const CollaboratorSearch: React.FC<CollaboratorSearchProps> = ({
 
   useEffect(() => {
     return () => {
-      if (timerRef.current) clearTimeout(timerRef.current);
+      const timer = timerRef.current;
+      if (timer) clearTimeout(timer);
     };
   }, []);
 

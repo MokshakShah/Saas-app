@@ -114,7 +114,7 @@ const QuillEditor: React.FC<QuillEditorProps> = ({
       inTrash: dirDetails.inTrash,
       bannerUrl: dirDetails.bannerUrl,
     } as workspace | Folder | File;
-  }, [state, workspaceId, folderId]);
+  }, [state, workspaceId, folderId, dirDetails.bannerUrl, dirDetails.createdAt, dirDetails.data, dirDetails.iconId, dirDetails.inTrash, dirDetails.title, dirType, fileId]);
 
   const breadCrumbs = useMemo(() => {
     if (!pathname || !state.workspaces || !workspaceId) return;
@@ -286,71 +286,69 @@ const QuillEditor: React.FC<QuillEditorProps> = ({
 
   useEffect(() => {
     if (!fileId) return;
-    let selectedDir;
-    const fetchInformation = async () => {
-      if (dirType === 'file') {
-        const { data: selectedDir, error } = await getFileDetails(fileId);
-        if (error || !selectedDir) {
-          return router.replace('/dashboard');
+    // Removed duplicate fetchInformation definition
+      const fetchInformation = async () => {
+        if (dirType === 'file') {
+          const { data: selectedDir, error } = await getFileDetails(fileId);
+          if (error || !selectedDir) {
+            return router.replace('/dashboard');
+          }
+          if (!selectedDir[0]) {
+            if (!workspaceId) return;
+            return router.replace(`/dashboard/${workspaceId}`);
+          }
+          if (!workspaceId || quill === null) return;
+          if (!selectedDir[0].data) return;
+          quill.setContents(JSON.parse(selectedDir[0].data || ''));
+          dispatch({
+            type: 'UPDATE_FILE',
+            payload: {
+              file: { data: selectedDir[0].data },
+              fileId,
+              folderId: selectedDir[0].folderId,
+              workspaceId,
+            },
+          });
         }
-
-        if (!selectedDir[0]) {
-          if (!workspaceId) return;
-          return router.replace(`/dashboard/${workspaceId}`);
+        if (dirType === 'folder') {
+          const { data: selectedDir, error } = await getFolderDetails(fileId);
+          if (error || !selectedDir) {
+            return router.replace('/dashboard');
+          }
+          if (!selectedDir[0]) {
+            router.replace(`/dashboard/${workspaceId}`);
+          }
+          if (quill === null) return;
+          if (!selectedDir[0].data) return;
+          quill.setContents(JSON.parse(selectedDir[0].data || ''));
+          dispatch({
+            type: 'UPDATE_FOLDER',
+            payload: {
+              folderId: fileId,
+              folder: { data: selectedDir[0].data },
+              workspaceId: selectedDir[0].workspaceId,
+            },
+          });
         }
-        if (!workspaceId || quill === null) return;
-        if (!selectedDir[0].data) return;
-        quill.setContents(JSON.parse(selectedDir[0].data || ''));
-        dispatch({
-          type: 'UPDATE_FILE',
-          payload: {
-            file: { data: selectedDir[0].data },
-            fileId,
-            folderId: selectedDir[0].folderId,
-            workspaceId,
-          },
-        });
-      }
-      if (dirType === 'folder') {
-        const { data: selectedDir, error } = await getFolderDetails(fileId);
-        if (error || !selectedDir) {
-          return router.replace('/dashboard');
+        if (dirType === 'workspace') {
+          const { data: selectedDir, error } = await getWorkspaceDetails(fileId);
+          if (error || !selectedDir) {
+            return router.replace('/dashboard');
+          }
+          if (!selectedDir[0] || quill === null) return;
+          if (!selectedDir[0].data) return;
+          quill.setContents(JSON.parse(selectedDir[0].data || ''));
+          dispatch({
+            type: 'UPDATE_WORKSPACE',
+            payload: {
+              workspace: { data: selectedDir[0].data },
+              workspaceId: fileId,
+            },
+          });
         }
-
-        if (!selectedDir[0]) {
-          router.replace(`/dashboard/${workspaceId}`);
-        }
-        if (quill === null) return;
-        if (!selectedDir[0].data) return;
-        quill.setContents(JSON.parse(selectedDir[0].data || ''));
-        dispatch({
-          type: 'UPDATE_FOLDER',
-          payload: {
-            folderId: fileId,
-            folder: { data: selectedDir[0].data },
-            workspaceId: selectedDir[0].workspaceId,
-          },
-        });
-      }
-      if (dirType === 'workspace') {
-        const { data: selectedDir, error } = await getWorkspaceDetails(fileId);
-        if (error || !selectedDir) {
-          return router.replace('/dashboard');
-        }
-        if (!selectedDir[0] || quill === null) return;
-        if (!selectedDir[0].data) return;
-        quill.setContents(JSON.parse(selectedDir[0].data || ''));
-        dispatch({
-          type: 'UPDATE_WORKSPACE',
-          payload: {
-            workspace: { data: selectedDir[0].data },
-            workspaceId: fileId,
-          },
-        });
-      }
-    };
-    fetchInformation();
-  }, [fileId, workspaceId, quill, dirType]);
+      };
+      fetchInformation();
+    }, [fileId, workspaceId, quill, dirType, router]);
 
   useEffect(() => {
     if (quill === null || socket === null || !fileId || !localCursors.length)
@@ -741,7 +739,7 @@ const QuillEditor: React.FC<QuillEditorProps> = ({
         <div
           id="container"
           className="max-w-[800px]"
-          ref={wrapperRef}
+          ref={el => { wrapperRef.current = el; }}
         ></div>
       </div>
     </>

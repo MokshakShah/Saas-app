@@ -64,13 +64,6 @@
       "when": 1698171444744,
       "tag": "0008_tranquil_franklin_storm",
       "breakpoints": true
-    },
-    {
-      "idx": 9,
-      "version": "5",
-      "when": 1732016520000,
-      "tag": "0009_add_logo_to_workspaces",
-      "breakpoints": true
     }
   ]
 }
