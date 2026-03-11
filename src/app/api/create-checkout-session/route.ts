@@ -1,16 +1,14 @@
 import { stripe } from '@/lib/stripe';
 import { createOrRetrieveCustomer } from '@/lib/stripe/adminTasks';
 import { getURL } from '@/lib/utils';
-import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs';
+import { createClient } from '@/lib/supabase/server';
 
-import { cookies } from 'next/headers';
 import { NextResponse } from 'next/server';
 
 export async function POST(request: Request) {
   const { price, quantity = 1, metadata = {} } = await request.json();
   try {
-    const cookieStore = await cookies();
-    const supabase = createRouteHandlerClient({ cookies: cookieStore });
+    const supabase = await createClient();
     const {
       data: { user },
     } = await supabase.auth.getUser();

@@ -6,7 +6,7 @@ import {
 } from '@/lib/providers/state-provider';
 import { Folder, workspace } from '@/lib/supabase/supabase.types';
 import { UploadBannerFormSchema } from '@/lib/types';
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
+import { createClient } from '@/lib/supabase/browser';
 import React from 'react';
 import { SubmitHandler, useForm } from 'react-hook-form';
 import { z } from 'zod';
@@ -26,7 +26,7 @@ interface BannerUploadFormProps {
 }
 
 const BannerUploadForm: React.FC<BannerUploadFormProps> = ({ dirType, id }) => {
-  const supabase = createClientComponentClient();
+  const supabase = createClient();
   const { state, workspaceId, folderId, dispatch } = useAppState();
   const {
     register,

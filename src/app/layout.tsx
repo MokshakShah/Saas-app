@@ -24,13 +24,10 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <body className={twMerge('bg-background', inter.className)}>
-        <ThemeProvider
-          attribute="class"
-          defaultTheme="dark"
-          enableSystem
-        >
+        {/* ThemeProvider should use system as default to avoid SSR mismatch */}
+        <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
           <AppStateProvider>
             <SupabaseUserProvider>
               <SocketProvider>

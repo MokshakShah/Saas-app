@@ -1,4 +1,4 @@
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
+import { createClient } from '@/lib/supabase/browser';
 import React, { useEffect } from 'react';
 import { useAppState } from '../providers/state-provider';
 
@@ -6,7 +6,7 @@ import { File } from '../supabase/supabase.types';
 import { useRouter } from 'next/navigation';
 
 const useSupabaseRealtime = () => {
-  const supabase = createClientComponentClient();
+  const supabase = createClient();
   const { dispatch, state, workspaceId: selectedWorskpace } = useAppState();
   const router = useRouter();
   useEffect(() => {

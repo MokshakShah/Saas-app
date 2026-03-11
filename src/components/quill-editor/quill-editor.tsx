@@ -31,7 +31,7 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 import { Badge } from '../ui/badge';
 import Image from 'next/image';
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
+import { createClient } from '@/lib/supabase/browser';
 import EmojiPicker from '../global/emoji-picker';
 import BannerUpload from '../banner-upload/banner-upload';
 import { XCircleIcon } from 'lucide-react';
@@ -68,7 +68,7 @@ const QuillEditor: React.FC<QuillEditorProps> = ({
   dirType,
   fileId,
 }) => {
-  const supabase = createClientComponentClient();
+  const supabase = createClient();
   const { state, workspaceId, folderId, dispatch } = useAppState();
   const saveTimerRef = useRef<ReturnType<typeof setTimeout>>();
   const { user } = useSupabaseUser();

@@ -1,7 +1,5 @@
-import { createServerComponentClient } from '@supabase/auth-helpers-nextjs';
+import { createClient } from '@/lib/supabase/server';
 import React from 'react';
-
-import { cookies } from 'next/headers';
 import {
   getCollaboratingWorkspaces,
   getFolders,
@@ -24,8 +22,7 @@ interface SidebarProps {
 }
 
 const Sidebar: React.FC<SidebarProps> = async ({ params, className }) => {
-  const cookieStore = await cookies();
-  const supabase = createServerComponentClient({ cookies: cookieStore });
+  const supabase = await createClient();
   //user
   const {
     data: { user },

@@ -5,7 +5,7 @@ import { useAppState } from '@/lib/providers/state-provider';
 import { User, workspace } from '@/lib/supabase/supabase.types';
 import { useSupabaseUser } from '@/lib/providers/supabase-user-provider';
 import { useRouter } from 'next/navigation';
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
+import { createClient } from '@/lib/supabase/browser';
 import {
   Briefcase,
   CreditCard,
@@ -63,7 +63,7 @@ const SettingsForm = () => {
   const { user, subscription } = useSupabaseUser();
   const { open, setOpen } = useSubscriptionModal();
   const router = useRouter();
-  const supabase = createClientComponentClient();
+  const supabase = createClient();
   const { state, workspaceId, dispatch } = useAppState();
   const [permissions, setPermissions] = useState('private');
   const [collaborators, setCollaborators] = useState<User[] | []>([]);
