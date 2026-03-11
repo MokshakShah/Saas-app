@@ -14,7 +14,8 @@ interface UserCardProps {
 }
 
 const UserCard: React.FC<UserCardProps> = async ({ subscription }) => {
-  const supabase = createServerComponentClient({ cookies });
+  const cookieStore = await cookies();
+  const supabase = createServerComponentClient({ cookies: cookieStore });
   const {
     data: { user },
   } = await supabase.auth.getUser();

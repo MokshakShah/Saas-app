@@ -45,14 +45,14 @@ const WorkspaceCreator = () => {
     if (user?.id) {
       const newWorkspace: workspace = {
         data: null,
-        createdAt: new Date().toISOString(),
-        iconId: '💼',
+        created_at: new Date().toISOString(),
+        icon_id: '💼',
         id: uuid,
-        inTrash: '',
+        in_trash: '',
         title,
-        workspaceOwner: user.id,
+        workspace_owner: user.id,
         logo: null,
-        bannerUrl: '',
+        banner_url: '',
       };
       if (permissions === 'private') {
         toast({ title: 'Success', description: 'Created the workspace' });

@@ -24,7 +24,8 @@ interface SidebarProps {
 }
 
 const Sidebar: React.FC<SidebarProps> = async ({ params, className }) => {
-  const supabase = createServerComponentClient({ cookies });
+  const cookieStore = await cookies();
+  const supabase = createServerComponentClient({ cookies: cookieStore });
   //user
   const {
     data: { user },

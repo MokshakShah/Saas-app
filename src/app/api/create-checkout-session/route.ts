@@ -9,7 +9,8 @@ import { NextResponse } from 'next/server';
 export async function POST(request: Request) {
   const { price, quantity = 1, metadata = {} } = await request.json();
   try {
-    const supabase = createRouteHandlerClient({ cookies });
+    const cookieStore = await cookies();
+    const supabase = createRouteHandlerClient({ cookies: cookieStore });
     const {
       data: { user },
     } = await supabase.auth.getUser();

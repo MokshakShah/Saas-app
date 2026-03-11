@@ -6,7 +6,8 @@ import { getFolderDetails } from '@/lib/supabase/queries';
 import { redirect } from 'next/navigation';
 
 const Folder = async ({ params }: { params: { folderId: string } }) => {
-  const { data, error } = await getFolderDetails(params.folderId);
+  const folderId = await params.folderId;
+  const { data, error } = await getFolderDetails(folderId);
   if (error || !data.length) redirect('/dashboard');
 
   return (

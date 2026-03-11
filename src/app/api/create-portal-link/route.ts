@@ -6,7 +6,8 @@ import { cookies } from 'next/headers';
 import { NextResponse } from 'next/server';
 export async function POST() {
   try {
-    const supabse = createRouteHandlerClient({ cookies });
+    const cookieStore = await cookies();
+    const supabse = createRouteHandlerClient({ cookies: cookieStore });
     const {
       data: { user },
     } = await supabse.auth.getUser();
