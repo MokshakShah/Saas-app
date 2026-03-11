@@ -5,8 +5,8 @@ import QuillEditor from '@/components/quill-editor/quill-editor';
 import { getFileDetails } from '@/lib/supabase/queries';
 import { redirect } from 'next/navigation';
 
-const File = async ({ params }: { params: { fileId: string } }) => {
-  const fileId = await params.fileId;
+const File = async ({ params }: { params: Promise<{ fileId: string }> }) => {
+  const { fileId } = await params;
   const { data, error } = await getFileDetails(fileId);
   if (error || !data.length) redirect('/dashboard');
 
@@ -14,7 +14,7 @@ const File = async ({ params }: { params: { fileId: string } }) => {
     <div className="relative ">
       <QuillEditor
         dirType="file"
-        fileId={params.fileId}
+        fileId={fileId}
         dirDetails={data[0] || {}}
       />
     </div>

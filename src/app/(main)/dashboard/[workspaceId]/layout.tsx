@@ -4,10 +4,11 @@ import React from 'react';
 
 interface LayoutProps {
   children: React.ReactNode;
-  params: any;
+  params: Promise<{ workspaceId: string }>;
 }
 
-const Layout: React.FC<LayoutProps> = ({ children, params }) => {
+const Layout = async ({ children, params }: LayoutProps) => {
+  const resolvedParams = await params;
   return (
     <main
       className="flex overflow-hidden
@@ -15,10 +16,10 @@ const Layout: React.FC<LayoutProps> = ({ children, params }) => {
       w-screen
   "
     >
-      <Sidebar params={params} />
+      <Sidebar params={resolvedParams} />
       <MobileSidebar>
         <Sidebar
-          params={params}
+          params={resolvedParams}
           className="w-screen inline-block sm:hidden"
         />
       </MobileSidebar>

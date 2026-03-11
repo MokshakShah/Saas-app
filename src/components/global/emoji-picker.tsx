@@ -9,6 +9,8 @@ import {
   PopoverTrigger,
 } from '@/components/ui/popover';
 
+const Picker = dynamic(() => import('emoji-picker-react'), { ssr: false });
+
 interface EmojiPickerProps {
   children: React.ReactNode;
   getValue?: (emoji: string) => void;
@@ -16,7 +18,6 @@ interface EmojiPickerProps {
 
 const EmojiPicker: React.FC<EmojiPickerProps> = ({ children, getValue }) => {
   const route = useRouter();
-  const Picker = dynamic(() => import('emoji-picker-react'));
   const onClick = (selectedEmoji: any) => {
     if (getValue) getValue(selectedEmoji.emoji);
   };

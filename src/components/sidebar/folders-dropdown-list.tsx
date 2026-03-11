@@ -28,6 +28,8 @@ const FoldersDropdownList: React.FC<FoldersDropdownListProps> = ({
   const { toast } = useToast();
   const [folders, setFolders] = useState(workspaceFolders);
   const { subscription } = useSupabaseUser();
+  const stateRef = React.useRef(state);
+  stateRef.current = state;
 
   //effec set nitial satte server app state
   useEffect(() => {
@@ -39,14 +41,14 @@ const FoldersDropdownList: React.FC<FoldersDropdownListProps> = ({
           folders: workspaceFolders.map((folder) => ({
             ...folder,
             files:
-              state.workspaces
+              stateRef.current.workspaces
                 .find((workspace) => workspace.id === workspaceId)
                 ?.folders.find((f) => f.id === folder.id)?.files || [],
           })),
         },
       });
     }
-  }, [workspaceFolders, workspaceId, dispatch, state.workspaces]);
+  }, [workspaceFolders, workspaceId, dispatch]);
   //state
 
   useEffect(() => {

@@ -5,8 +5,8 @@ import QuillEditor from '@/components/quill-editor/quill-editor';
 import { getFolderDetails } from '@/lib/supabase/queries';
 import { redirect } from 'next/navigation';
 
-const Folder = async ({ params }: { params: { folderId: string } }) => {
-  const folderId = await params.folderId;
+const Folder = async ({ params }: { params: Promise<{ folderId: string }> }) => {
+  const { folderId } = await params;
   const { data, error } = await getFolderDetails(folderId);
   if (error || !data.length) redirect('/dashboard');
 
@@ -14,7 +14,7 @@ const Folder = async ({ params }: { params: { folderId: string } }) => {
     <div className="relative ">
       <QuillEditor
         dirType="folder"
-        fileId={params.folderId}
+        fileId={folderId}
         dirDetails={data[0] || {}}
       />
     </div>
