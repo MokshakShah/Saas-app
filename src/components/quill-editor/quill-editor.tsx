@@ -2,7 +2,6 @@
 import { useAppState } from '@/lib/providers/state-provider';
 import { File, Folder, workspace } from '@/lib/supabase/supabase.types';
 import React, {
-  useCallback,
   useEffect,
   useMemo,
   useRef,
@@ -71,6 +70,8 @@ const QuillEditor: React.FC<QuillEditorProps> = ({
   const supabase = createClient();
   const { state, workspaceId, folderId, dispatch } = useAppState();
   const saveTimerRef = useRef<ReturnType<typeof setTimeout>>();
+  const editorContainerRef = useRef<HTMLDivElement | null>(null);
+  const quillInstanceRef = useRef<any>(null);
   const { user } = useSupabaseUser();
   const router = useRouter();
   const { socket, isConnected } = useSocket();
@@ -154,17 +155,27 @@ const QuillEditor: React.FC<QuillEditorProps> = ({
     return `${workspaceBreadCrumb} ${folderBreadCrumb} ${fileBreadCrumb}`;
   }, [state, pathname, workspaceId]);
 
-  //
-  const wrapperRef = useCallback(async (wrapper: any) => {
-    if (typeof window !== 'undefined') {
-      if (wrapper === null) return;
+  useEffect(() => {
+    let cancelled = false;
+
+    const initializeEditor = async () => {
+      if (typeof window === 'undefined') return;
+      const wrapper = editorContainerRef.current;
+      if (!wrapper || quillInstanceRef.current) return;
+
       wrapper.innerHTML = '';
       const editor = document.createElement('div');
       wrapper.append(editor);
+
       const Quill = (await import('quill')).default;
       const QuillCursors = (await import('quill-cursors')).default;
+
+      if (cancelled || !wrapper.isConnected || editor.parentElement !== wrapper) {
+        return;
+      }
+
       Quill.register('modules/cursors', QuillCursors);
-      const q = new Quill(editor, {
+      const instance = new Quill(editor, {
         theme: 'snow',
         modules: {
           toolbar: TOOLBAR_OPTIONS,
@@ -173,8 +184,19 @@ const QuillEditor: React.FC<QuillEditorProps> = ({
           },
         },
       });
-      setQuill(q);
-    }
+
+      if (cancelled) return;
+
+      quillInstanceRef.current = instance;
+      setQuill(instance);
+    };
+
+    initializeEditor();
+
+    return () => {
+      cancelled = true;
+      quillInstanceRef.current = null;
+    };
   }, []);
 
   const restoreFileHandler = async () => {
@@ -251,37 +273,41 @@ const QuillEditor: React.FC<QuillEditorProps> = ({
 
   const deleteBanner = async () => {
     if (!fileId) return;
+    if (dirType === 'file' && (!folderId || !workspaceId)) return;
+    if (dirType === 'folder' && !workspaceId) return;
     setDeletingBanner(true);
-    if (dirType === 'file') {
-      if (!folderId || !workspaceId) return;
-      dispatch({
-        type: 'UPDATE_FILE',
-        payload: { file: { bannerUrl: '' }, fileId, folderId, workspaceId },
-      });
+    try {
       await supabase.storage.from('file-banners').remove([`banner-${fileId}`]);
-      await updateFile({ bannerUrl: '' }, fileId);
+
+      if (dirType === 'file') {
+        dispatch({
+          type: 'UPDATE_FILE',
+          payload: { file: { bannerUrl: '' }, fileId, folderId, workspaceId },
+        });
+        await updateFile({ bannerUrl: '' }, fileId);
+      }
+
+      if (dirType === 'folder') {
+        dispatch({
+          type: 'UPDATE_FOLDER',
+          payload: { folder: { bannerUrl: '' }, folderId: fileId, workspaceId },
+        });
+        await updateFolder({ bannerUrl: '' }, fileId);
+      }
+
+      if (dirType === 'workspace') {
+        dispatch({
+          type: 'UPDATE_WORKSPACE',
+          payload: {
+            workspace: { bannerUrl: '' },
+            workspaceId: fileId,
+          },
+        });
+        await updateWorkspace({ bannerUrl: '' }, fileId);
+      }
+    } finally {
+      setDeletingBanner(false);
     }
-    if (dirType === 'folder') {
-      if (!workspaceId) return;
-      dispatch({
-        type: 'UPDATE_FOLDER',
-        payload: { folder: { bannerUrl: '' }, folderId: fileId, workspaceId },
-      });
-      await supabase.storage.from('file-banners').remove([`banner-${fileId}`]);
-      await updateFolder({ bannerUrl: '' }, fileId);
-    }
-    if (dirType === 'workspace') {
-      dispatch({
-        type: 'UPDATE_WORKSPACE',
-        payload: {
-          workspace: { bannerUrl: '' },
-          workspaceId: fileId,
-        },
-      });
-      await supabase.storage.from('file-banners').remove([`banner-${fileId}`]);
-      await updateWorkspace({ bannerUrl: '' }, fileId);
-    }
-    setDeletingBanner(false);
   };
 
   useEffect(() => {
@@ -739,7 +765,7 @@ const QuillEditor: React.FC<QuillEditorProps> = ({
         <div
           id="container"
           className="max-w-[800px]"
-          ref={el => { wrapperRef.current = el; }}
+          ref={editorContainerRef}
         ></div>
       </div>
     </>

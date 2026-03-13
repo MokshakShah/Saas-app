@@ -235,6 +235,27 @@ const Dropdown: React.FC<DropdownProps> = ({
     }
   };
 
+  // Derive iconId from state for immediate updates after dispatch
+  const currentIcon = useMemo(() => {
+    if (listType === 'folder') {
+      return (
+        state.workspaces
+          .find((w) => w.id === workspaceId)
+          ?.folders.find((f) => f.id === id)?.iconId || iconId
+      );
+    }
+    if (listType === 'file') {
+      const [folderPart, filePart] = id.split('folder');
+      return (
+        state.workspaces
+          .find((w) => w.id === workspaceId)
+          ?.folders.find((f) => f.id === folderPart)
+          ?.files.find((file) => file.id === filePart)?.iconId || iconId
+      );
+    }
+    return iconId;
+  }, [state, listType, workspaceId, id, iconId]);
+
   const isFolder = listType === 'folder';
   const groupIdentifies = clsx(
     'dark:text-white whitespace-nowrap flex justify-between items-center w-full relative',
@@ -258,8 +279,8 @@ const Dropdown: React.FC<DropdownProps> = ({
       clsx(
         'h-full hidden rounded-sm absolute right-0 items-center justify-center',
         {
-          'group-hover/file:block': listType === 'file',
-          'group-hover/folder:block': listType === 'folder',
+          'group-hover/file:flex': listType === 'file',
+          'group-hover/folder:flex': listType === 'folder',
         }
       ),
     [isFolder, listType]
@@ -323,7 +344,7 @@ const Dropdown: React.FC<DropdownProps> = ({
           overflow-hidden"
           >
             <div className="relative">
-              <EmojiPicker getValue={onChangeEmoji}>{iconId}</EmojiPicker>
+              <EmojiPicker getValue={onChangeEmoji}>{currentIcon}</EmojiPicker>
             </div>
             <input
               type="text"
@@ -345,19 +366,41 @@ const Dropdown: React.FC<DropdownProps> = ({
           </div>
           <div className={hoverStyles}>
             <TooltipComponent message="Delete Folder">
-              <Trash
-                onClick={moveToTrash}
-                size={15}
-                className="hover:dark:text-white dark:text-Neutrals/neutrals-7 transition-colors"
-              />
+              <button
+                type="button"
+                aria-label={isFolder ? 'Move folder to trash' : 'Move file to trash'}
+                className="inline-flex items-center justify-center p-1 hover:dark:text-white dark:text-Neutrals/neutrals-7 transition-colors"
+                onMouseDown={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                }}
+                onClick={async (e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  await moveToTrash();
+                }}
+              >
+                <Trash size={15} />
+              </button>
             </TooltipComponent>
             {listType === 'folder' && !isEditing && (
               <TooltipComponent message="Add File">
-                <PlusIcon
-                  onClick={addNewFile}
-                  size={15}
-                  className="hover:dark:text-white dark:text-Neutrals/neutrals-7 transition-colors"
-                />
+                <button
+                  type="button"
+                  aria-label="Add file"
+                  className="inline-flex items-center justify-center p-1 hover:dark:text-white dark:text-Neutrals/neutrals-7 transition-colors"
+                  onMouseDown={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                  }}
+                  onClick={async (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    await addNewFile();
+                  }}
+                >
+                  <PlusIcon size={15} />
+                </button>
               </TooltipComponent>
             )}
           </div>

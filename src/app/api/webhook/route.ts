@@ -4,7 +4,6 @@ import {
   upsertPriceRecord,
   upsertProductRecord,
 } from '@/lib/stripe/adminTasks';
-import { headers } from 'next/headers';
 import { NextRequest, NextResponse } from 'next/server';
 import Stripe from 'stripe';
 
@@ -21,7 +20,7 @@ const relevantEvents = new Set([
 
 export async function POST(request: NextRequest) {
   const body = await request.text();
-  const sig = headers().get('Stripe-Signature');
+  const sig = request.headers.get('stripe-signature');
 
   const webhookSecret =
     process.env.STRIPE_WEBHOOK_SECRET_LIVE ?? process.env.STRIPE_WEBHOOK_SECRET;
