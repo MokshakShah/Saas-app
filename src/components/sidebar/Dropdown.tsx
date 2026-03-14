@@ -177,19 +177,23 @@ const Dropdown: React.FC<DropdownProps> = ({
 
   //move to trash
   const moveToTrash = async () => {
-    if (!user?.email || !workspaceId) return;
+    if (!user?.id || !workspaceId) return;
     const pathId = id.split('folder');
+    
+    // Use user.email if available, otherwise use user.id
+    const deletedBy = user?.email || user?.id || 'Unknown user';
+    
     if (listType === 'folder') {
       dispatch({
         type: 'UPDATE_FOLDER',
         payload: {
-          folder: { inTrash: `Deleted by ${user?.email}` },
+          folder: { inTrash: `Deleted by ${deletedBy}` },
           folderId: pathId[0],
           workspaceId,
         },
       });
       const { data, error } = await updateFolder(
-        { inTrash: `Deleted by ${user?.email}` },
+        { inTrash: `Deleted by ${deletedBy}` },
         pathId[0]
       );
       if (error) {
@@ -210,26 +214,26 @@ const Dropdown: React.FC<DropdownProps> = ({
       dispatch({
         type: 'UPDATE_FILE',
         payload: {
-          file: { inTrash: `Deleted by ${user?.email}` },
+          file: { inTrash: `Deleted by ${deletedBy}` },
           folderId: pathId[0],
           workspaceId,
           fileId: pathId[1],
         },
       });
       const { data, error } = await updateFile(
-        { inTrash: `Deleted by ${user?.email}` },
+        { inTrash: `Deleted by ${deletedBy}` },
         pathId[1]
       );
       if (error) {
         toast({
           title: 'Error',
           variant: 'destructive',
-          description: 'Could not move the folder to trash',
+          description: 'Could not move the file to trash',
         });
       } else {
         toast({
           title: 'Success',
-          description: 'Moved folder to trash',
+          description: 'Moved file to trash',
         });
       }
     }

@@ -77,7 +77,8 @@ const SignupContent = () => {
       form.reset();
       return;
     }
-    setConfirmation(true);
+    // Redirect immediately to dashboard since email confirmation is disabled
+    router.replace('/dashboard');
   };
 
   return (

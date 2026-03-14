@@ -3,7 +3,7 @@ import { validate } from 'uuid';
 import { files, folders, users, workspaces } from '../../../migrations/schema';
 import db from './db';
 import { File, Folder, Subscription, User, workspace } from './supabase.types';
-import { and, eq, ilike, notExists } from 'drizzle-orm';
+import { and, eq, ilike, notExists, isNotNull } from 'drizzle-orm';
 import { collaborators } from './schema';
 import { revalidatePath } from 'next/cache';
 
@@ -32,6 +32,110 @@ export const getUserSubscriptionStatus = async (userId: string) => {
   } catch (error) {
     console.log(error);
     return { data: null, error: `Error` };
+  }
+};
+
+export const syncAuthenticatedUser = async (authUser: {
+  id: string;
+  email?: string | null;
+  user_metadata?: Record<string, unknown>;
+}, fallbackEmail?: string | null) => {
+  if (!authUser?.id) return { data: null, error: 'Missing user id' };
+
+  try {
+    const normalizedAuthEmail = authUser.email?.trim() || null;
+    const normalizedFallbackEmail = fallbackEmail?.trim() || null;
+
+    // Get existing user from database
+    const existingUser = await db.query.users.findFirst({
+      where: (u, { eq }) => eq(u.id, authUser.id),
+    });
+
+    const existingEmail = existingUser?.email?.trim() || null;
+
+    // Priority: fallbackEmail (from form) > authUser.email > existingEmail
+    const resolvedEmail = normalizedFallbackEmail ?? normalizedAuthEmail ?? existingEmail;
+
+    console.log('syncAuthenticatedUser:', {
+      authUserEmail: normalizedAuthEmail,
+      fallbackEmail: normalizedFallbackEmail,
+      existingEmail,
+      resolvedEmail
+    });
+
+    if (!resolvedEmail) {
+      return { data: null, error: 'No email available to sync' };
+    }
+
+    const fullName =
+      typeof authUser.user_metadata?.full_name === 'string'
+        ? authUser.user_metadata.full_name
+        : null;
+    const avatarUrl =
+      typeof authUser.user_metadata?.avatar_url === 'string'
+        ? authUser.user_metadata.avatar_url
+        : null;
+
+    await db
+      .insert(users)
+      .values({
+        id: authUser.id,
+        email: resolvedEmail,
+        fullName,
+        avatarUrl,
+        updatedAt: new Date().toISOString(),
+      })
+      .onConflictDoUpdate({
+        target: users.id,
+        set: {
+          email: resolvedEmail,
+          fullName,
+          avatarUrl,
+          updatedAt: new Date().toISOString(),
+        },
+      });
+
+    return { data: null, error: null };
+  } catch (error) {
+    console.log('syncAuthenticatedUser error:', error);
+    return { data: null, error: 'Error syncing user' };
+  }
+};
+
+export const ensureUserEmailById = async (
+  userId: string,
+  email?: string | null
+) => {
+  const normalizedEmail = email?.trim() || '';
+
+  if (!userId) {
+    return { data: null, error: 'Missing user id' };
+  }
+
+  if (!normalizedEmail) {
+    return { data: null, error: 'Missing email' };
+  }
+
+  try {
+    await db
+      .insert(users)
+      .values({
+        id: userId,
+        email: normalizedEmail,
+        updatedAt: new Date().toISOString(),
+      })
+      .onConflictDoUpdate({
+        target: users.id,
+        set: {
+          email: normalizedEmail,
+          updatedAt: new Date().toISOString(),
+        },
+      });
+
+    return { data: null, error: null };
+  } catch (error) {
+    console.log('ensureUserEmailById error:', error);
+    return { data: null, error: 'Error persisting user email' };
   }
 };
 
@@ -79,8 +183,10 @@ export const getWorkspaceDetails = async (workspaceId: string) => {
 export const getFileDetails = async (fileId: string) => {
   const isValid = validate(fileId);
   if (!isValid) {
-    data: [];
-    error: 'Error';
+    return {
+      data: [],
+      error: 'Error'
+    };
   }
   try {
     const response = (await db
@@ -108,8 +214,10 @@ export const deleteFolder = async (folderId: string) => {
 export const getFolderDetails = async (folderId: string) => {
   const isValid = validate(folderId);
   if (!isValid) {
-    data: [];
-    error: 'Error';
+    return {
+      data: [],
+      error: 'Error'
+    };
   }
 
   try {
@@ -213,35 +321,49 @@ export const getFiles = async (folderId: string) => {
 };
 
 export const addCollaborators = async (users: User[], workspaceId: string) => {
-  const response = users.forEach(async (user: User) => {
-    const userExists = await db.query.collaborators.findFirst({
-      where: (u, { eq }) =>
-        and(eq(u.userId, user.id), eq(u.workspaceId, workspaceId)),
-    });
-    if (!userExists)
-      await db.insert(collaborators).values({ workspaceId, userId: user.id });
-  });
+  try {
+    for (const user of users) {
+      const userExists = await db.query.collaborators.findFirst({
+        where: (u, { eq }) =>
+          and(eq(u.userId, user.id), eq(u.workspaceId, workspaceId)),
+      });
+      if (!userExists) {
+        await db.insert(collaborators).values({ workspaceId, userId: user.id });
+      }
+    }
+    return { data: null, error: null };
+  } catch (error) {
+    console.error('Error adding collaborators:', error);
+    return { data: null, error: 'Failed to add collaborators' };
+  }
 };
 
 export const removeCollaborators = async (
   users: User[],
   workspaceId: string
 ) => {
-  const response = users.forEach(async (user: User) => {
-    const userExists = await db.query.collaborators.findFirst({
-      where: (u, { eq }) =>
-        and(eq(u.userId, user.id), eq(u.workspaceId, workspaceId)),
-    });
-    if (userExists)
-      await db
-        .delete(collaborators)
-        .where(
-          and(
-            eq(collaborators.workspaceId, workspaceId),
-            eq(collaborators.userId, user.id)
-          )
-        );
-  });
+  try {
+    for (const user of users) {
+      const userExists = await db.query.collaborators.findFirst({
+        where: (u, { eq }) =>
+          and(eq(u.userId, user.id), eq(u.workspaceId, workspaceId)),
+      });
+      if (userExists) {
+        await db
+          .delete(collaborators)
+          .where(
+            and(
+              eq(collaborators.workspaceId, workspaceId),
+              eq(collaborators.userId, user.id)
+            )
+          );
+      }
+    }
+    return { data: null, error: null };
+  } catch (error) {
+    console.error('Error removing collaborators:', error);
+    return { data: null, error: 'Failed to remove collaborators' };
+  }
 };
 
 export const findUser = async (userId: string) => {
@@ -352,10 +474,59 @@ export const getCollaborators = async (workspaceId: string) => {
 };
 
 export const getUsersFromSearch = async (email: string) => {
-  if (!email) return [];
-  const accounts = db
-    .select()
-    .from(users)
-    .where(ilike(users.email, `${email}%`));
-  return accounts;
+  const normalizedEmail = email.trim();
+
+  if (!normalizedEmail) return [];
+
+  try {
+    const accounts = await db
+      .select()
+      .from(users)
+      .where(ilike(users.email, `%${normalizedEmail}%`))
+      .limit(10); // Limit results for performance
+    return accounts;
+  } catch (error) {
+    console.error('Error searching users:', error);
+    return [];
+  }
+};
+
+export const getDeletedFolders = async (workspaceId: string) => {
+  const isValid = validate(workspaceId);
+  if (!isValid) return { data: null, error: 'Invalid workspace ID' };
+
+  try {
+    const results = await db
+      .select()
+      .from(folders)
+      .where(and(
+        eq(folders.workspaceId, workspaceId),
+        isNotNull(folders.inTrash)
+      ))
+      .orderBy(folders.createdAt);
+    return { data: results, error: null };
+  } catch (error) {
+    console.error('Error fetching deleted folders:', error);
+    return { data: null, error: 'Error fetching deleted folders' };
+  }
+};
+
+export const getDeletedFiles = async (workspaceId: string) => {
+  const isValid = validate(workspaceId);
+  if (!isValid) return { data: null, error: 'Invalid workspace ID' };
+
+  try {
+    const results = await db
+      .select()
+      .from(files)
+      .where(and(
+        eq(files.workspaceId, workspaceId),
+        isNotNull(files.inTrash)
+      ))
+      .orderBy(files.createdAt);
+    return { data: results, error: null };
+  } catch (error) {
+    console.error('Error fetching deleted files:', error);
+    return { data: null, error: 'Error fetching deleted files' };
+  }
 };
