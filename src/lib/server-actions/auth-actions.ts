@@ -56,12 +56,29 @@ export async function actionLoginUser({
 export async function actionSignUpUser({
   email,
   password,
-}: z.infer<typeof FormSchema>): Promise<AuthActionResult> {
+}: {
+  email: string;
+  password: string;
+}): Promise<AuthActionResult> {
   try {
+    console.log('Raw signup data received:', { email, password });
+    console.log('Email type:', typeof email, 'Password type:', typeof password);
+
+    // Validate input data
+    if (!email || email === 'undefined' || !email.trim()) {
+      console.error('Email validation failed:', email);
+      return { error: { message: 'Email is required for signup' } };
+    }
+
+    if (!password || password === 'undefined' || password.length < 6) {
+      console.error('Password validation failed:', password);
+      return { error: { message: 'Password must be at least 6 characters long' } };
+    }
+
     const supabase = await createClient();
-    
+
     console.log('Attempting signup with email:', email);
-    
+
     // Check if user already exists in our database
     const { data: existingUsers } = await supabase
       .from('users')
@@ -69,16 +86,16 @@ export async function actionSignUpUser({
       .eq('email', email);
 
     if (existingUsers?.length) {
-      return { error: { message: 'User already exists' } };
+      return { error: { message: 'User already exists with this email' } };
     }
 
     const response = await supabase.auth.signUp({
-      email,
+      email: email.trim(),
       password,
       options: {
         emailRedirectTo: getEmailRedirectTo(),
         data: {
-          email: email, // Explicitly pass email in metadata
+          email: email.trim(), // Explicitly pass email in metadata
         }
       },
     });
@@ -93,30 +110,30 @@ export async function actionSignUpUser({
     // Check if user was created successfully
     if (response.data.user) {
       console.log('User created successfully:', response.data.user);
-      
+
       // Use the email from the form since the user object might not have it yet
-      const userEmail = response.data.user.email || email;
-      
+      const userEmail = response.data.user.email || email.trim();
+
       if (!userEmail) {
         console.error('No email available for user');
         return { error: { message: 'Email is required for signup' } };
       }
-      
+
       // Sync user data immediately with the email from the form
       const syncResult = await syncAuthenticatedUser(response.data.user, userEmail);
       console.log('Sync result:', syncResult);
-      
+
       if (syncResult.error) {
         console.error('Failed to sync user:', syncResult.error);
         return {
           error: { message: 'Could not sync user data in database.' },
         };
       }
-      
+
       // Ensure email is persisted
       const persistResult = await ensureUserEmailById(response.data.user.id, userEmail);
       console.log('Persist result:', persistResult);
-      
+
       if (persistResult.error) {
         console.error('Failed to persist user email:', persistResult.error);
         return {

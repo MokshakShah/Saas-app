@@ -68,14 +68,19 @@ const DashboardSetup: React.FC<DashboardSetupProps> = ({
             cacheControl: '3600',
             upsert: true,
           });
-        if (error) throw new Error('');
+        if (error) {
+          console.error('Storage upload error:', error);
+          throw new Error(error.message || 'Upload failed');
+        }
         filePath = data.path;
       } catch (error) {
-        console.log('Error', error);
+        console.log('Error uploading logo:', error);
         toast({
           variant: 'destructive',
           title: 'Error! Could not upload your workspace logo',
+          description: error instanceof Error ? error.message : 'Storage bucket may not exist. Please contact support.',
         });
+        // Continue with workspace creation even if logo upload fails
       }
     }
     try {

@@ -45,6 +45,7 @@ const CollaboratorSearch: React.FC<CollaboratorSearchProps> = ({
     if (timerRef.current) clearTimeout(timerRef.current);
     
     const searchValue = e.target.value.trim();
+    console.log('Search input changed:', searchValue);
     
     if (searchValue.length === 0) {
       setSearchResults([]);
@@ -56,7 +57,11 @@ const CollaboratorSearch: React.FC<CollaboratorSearchProps> = ({
     
     timerRef.current = setTimeout(async () => {
       try {
+        console.log('Searching for users with:', searchValue);
         const res = await getUsersFromSearch(searchValue);
+        console.log('Search results from database:', res);
+        console.log('Current user ID:', user?.id);
+        console.log('Existing collaborators:', existingCollaborators);
         setSearchResults(res);
       } catch (error) {
         console.error('Error searching users:', error);
@@ -142,7 +147,7 @@ const CollaboratorSearch: React.FC<CollaboratorSearchProps> = ({
                   </Avatar>
                   <div className="flex flex-col">
                     <div className="text-sm font-medium">
-                      {searchUser.fullName || 'No name'}
+                      {searchUser.fullName || searchUser.email?.split('@')[0] || 'No name'}
                     </div>
                     <div
                       className="text-xs 

@@ -134,19 +134,44 @@ const SettingsForm = () => {
     if (!file) return;
     const uuid = v4();
     setUploadingLogo(true);
-    const { data, error } = await supabase.storage
-      .from('workspace-logos')
-      .upload(`workspaceLogo.${uuid}`, file, {
-        cacheControl: '3600',
-        upsert: true,
-      });
+    
+    try {
+      const { data, error } = await supabase.storage
+        .from('workspace-logos')
+        .upload(`workspaceLogo.${uuid}`, file, {
+          cacheControl: '3600',
+          upsert: true,
+        });
 
-    if (!error) {
+      if (error) {
+        console.error('Storage upload error:', error);
+        toast({
+          variant: 'destructive',
+          title: 'Error uploading logo',
+          description: error.message || 'Storage bucket may not exist. Please contact support.',
+        });
+        setUploadingLogo(false);
+        return;
+      }
+
       dispatch({
         type: 'UPDATE_WORKSPACE',
         payload: { workspace: { logo: data.path }, workspaceId },
       });
       await updateWorkspace({ logo: data.path }, workspaceId);
+      
+      toast({
+        title: 'Success',
+        description: 'Workspace logo updated successfully',
+      });
+    } catch (error) {
+      console.error('Error uploading logo:', error);
+      toast({
+        variant: 'destructive',
+        title: 'Error uploading logo',
+        description: 'An unexpected error occurred. Please try again.',
+      });
+    } finally {
       setUploadingLogo(false);
     }
   };
