@@ -280,17 +280,35 @@ const QuillEditor: React.FC<QuillEditorProps> = ({
       await supabase.storage.from('file-banners').remove([`banner-${fileId}`]);
 
       if (dirType === 'file') {
+        const currentWorkspaceId = workspaceId;
+        const currentFolderId = folderId;
+
+        if (!currentWorkspaceId || !currentFolderId) return;
+
         dispatch({
           type: 'UPDATE_FILE',
-          payload: { file: { bannerUrl: '' }, fileId, folderId, workspaceId },
+          payload: {
+            file: { bannerUrl: '' },
+            fileId,
+            folderId: currentFolderId,
+            workspaceId: currentWorkspaceId,
+          },
         });
         await updateFile({ bannerUrl: '' }, fileId);
       }
 
       if (dirType === 'folder') {
+        const currentWorkspaceId = workspaceId;
+
+        if (!currentWorkspaceId) return;
+
         dispatch({
           type: 'UPDATE_FOLDER',
-          payload: { folder: { bannerUrl: '' }, folderId: fileId, workspaceId },
+          payload: {
+            folder: { bannerUrl: '' },
+            folderId: fileId,
+            workspaceId: currentWorkspaceId,
+          },
         });
         await updateFolder({ bannerUrl: '' }, fileId);
       }

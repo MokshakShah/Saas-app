@@ -14,7 +14,7 @@ import clsx from 'clsx';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
-import React, { useMemo, useState } from 'react';
+import React, { Suspense, useMemo, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 
@@ -42,7 +42,7 @@ const SignUpFormSchema = z
     path: ['confirmPassword'],
   });
 
-const Signup = () => {
+const SignupContent = () => {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [submitError, setSubmitError] = useState('');
@@ -207,6 +207,20 @@ const Signup = () => {
         )}
       </form>
     </Form>
+  );
+};
+
+const SignupFallback = () => (
+  <div className="w-full sm:w-[400px] flex justify-center">
+    <Loader />
+  </div>
+);
+
+const Signup = () => {
+  return (
+    <Suspense fallback={<SignupFallback />}>
+      <SignupContent />
+    </Suspense>
   );
 };
 
