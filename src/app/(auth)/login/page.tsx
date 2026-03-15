@@ -1,6 +1,6 @@
 'use client';
 import { useRouter } from 'next/navigation';
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import { SubmitHandler, useForm } from 'react-hook-form';
 import * as z from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -25,6 +25,7 @@ import { actionLoginUser } from '@/lib/server-actions/auth-actions';
 const LoginPage = () => {
   const router = useRouter();
   const [submitError, setSubmitError] = useState('');
+  const formRef = useRef<HTMLFormElement>(null);
 
   const form = useForm<z.infer<typeof FormSchema>>({
     mode: 'onChange',
@@ -35,11 +36,25 @@ const LoginPage = () => {
   const isLoading = form.formState.isSubmitting;
 
   const onSubmit: SubmitHandler<z.infer<typeof FormSchema>> = async (
-    formData
+    formData,
+    _event
   ) => {
-    const { error } = await actionLoginUser(formData);
+    const formValues = form.getValues();
+    const nativeFormData = formRef.current ? new FormData(formRef.current) : null;
+
+    const email =
+      formData.email?.trim() ||
+      formValues.email?.trim() ||
+      nativeFormData?.get('email')?.toString().trim() ||
+      '';
+    const password =
+      formData.password ||
+      formValues.password ||
+      nativeFormData?.get('password')?.toString() ||
+      '';
+
+    const { error } = await actionLoginUser({ email, password });
     if (error) {
-      form.reset();
       setSubmitError(error.message);
       return;
     }
@@ -49,6 +64,7 @@ const LoginPage = () => {
   return (
     <Form {...form}>
       <form
+        ref={formRef}
         onChange={() => {
           if (submitError) setSubmitError('');
         }}
@@ -92,6 +108,7 @@ const LoginPage = () => {
                 <Input
                   type="email"
                   placeholder="Email"
+                  autoComplete="email"
                   {...field}
                 />
               </FormControl>
@@ -109,6 +126,7 @@ const LoginPage = () => {
                 <Input
                   type="password"
                   placeholder="Password"
+                  autoComplete="current-password"
                   {...field}
                 />
               </FormControl>

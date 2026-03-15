@@ -27,10 +27,17 @@ export async function actionLoginUser({
   password,
 }: z.infer<typeof FormSchema>): Promise<AuthActionResult> {
   try {
+    const normalizedEmail = email?.trim();
+    const normalizedPassword = password ?? '';
+
+    if (!normalizedEmail || !normalizedPassword) {
+      return { error: { message: 'Email and password are required.' } };
+    }
+
     const supabase = await createClient();
     const response = await supabase.auth.signInWithPassword({
-      email,
-      password,
+      email: normalizedEmail,
+      password: normalizedPassword,
     });
 
     if (response.error) {
@@ -38,8 +45,11 @@ export async function actionLoginUser({
     }
 
     if (response.data.user) {
-      await syncAuthenticatedUser(response.data.user, email);
-      const persistedEmail = await ensureUserEmailById(response.data.user.id, email);
+      await syncAuthenticatedUser(response.data.user, normalizedEmail);
+      const persistedEmail = await ensureUserEmailById(
+        response.data.user.id,
+        normalizedEmail
+      );
       if (persistedEmail.error) {
         return {
           error: { message: 'Could not persist user email in database.' },

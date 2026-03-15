@@ -14,8 +14,8 @@ import clsx from 'clsx';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
-import React, { Suspense, useMemo, useState } from 'react';
-import { useForm } from 'react-hook-form';
+import React, { Suspense, useMemo, useRef, useState } from 'react';
+import { SubmitHandler, useForm } from 'react-hook-form';
 import { z } from 'zod';
 
 import Logo from '../../../../public/cypresslogo.svg';
@@ -48,6 +48,7 @@ const SignupContent = () => {
   const searchParams = useSearchParams();
   const [submitError, setSubmitError] = useState('');
   const [confirmation, setConfirmation] = useState(false);
+  const formRef = useRef<HTMLFormElement>(null);
 
   const codeExchangeError = useMemo(() => {
     if (!searchParams) return '';
@@ -76,64 +77,55 @@ const SignupContent = () => {
 
   const isLoading = form.formState.isSubmitting;
   
-  const onSubmit = async (data: z.infer<typeof SignUpFormSchema>) => {
-    // Get values directly from form state as backup
+  const onSubmit: SubmitHandler<z.infer<typeof SignUpFormSchema>> = async (
+    data,
+    _event
+  ) => {
     const formValues = form.getValues();
-    console.log('Form submission data:', data);
-    console.log('Form values from getValues():', formValues);
-    
-    // Use formValues if data is undefined
-    const email = data.email || formValues.email;
-    const password = data.password || formValues.password;
-    const confirmPassword = data.confirmPassword || formValues.confirmPassword;
-    
-    console.log('Using values:', { email, password, confirmPassword });
-    
-    // Clear any previous errors
+    const nativeFormData = formRef.current ? new FormData(formRef.current) : null;
+
+    const email =
+      data.email?.trim() ||
+      formValues.email?.trim() ||
+      nativeFormData?.get('email')?.toString().trim() ||
+      '';
+    const password =
+      data.password ||
+      formValues.password ||
+      nativeFormData?.get('password')?.toString() ||
+      '';
+
     setSubmitError('');
-    
+
     try {
-      // Validate the data before sending
       if (!email || !password) {
         setSubmitError('Email and password are required');
         return;
       }
-      
-      console.log('Calling server action with:', { email, password });
-      
-      // Call server action with simple object
+
       const result = await actionSignUpUser({ email, password });
-      
+
       if (result.error) {
-        console.error('Signup error:', result.error);
         setSubmitError(result.error.message);
-        
-        // Clear any partial session that might have been created
+
         const supabase = createClient();
         await supabase.auth.signOut();
-        
-        form.reset();
         return;
       }
-      
-      console.log('Signup successful, redirecting to dashboard');
-      // Redirect immediately to dashboard since email confirmation is disabled
+
       router.replace('/dashboard');
     } catch (error) {
-      console.error('Unexpected signup error:', error);
       setSubmitError('An unexpected error occurred. Please try again.');
-      
-      // Clear any partial session that might have been created
+
       const supabase = createClient();
       await supabase.auth.signOut();
-      
-      form.reset();
     }
   };
 
   return (
     <Form {...form}>
       <form
+        ref={formRef}
         onChange={() => {
           if (submitError) setSubmitError('');
         }}
@@ -182,12 +174,8 @@ const SignupContent = () => {
                     <Input
                       type="email"
                       placeholder="Email"
+                      autoComplete="email"
                       {...field}
-                      value={field.value || ''}
-                      onChange={(e) => {
-                        console.log('Email input changed:', e.target.value);
-                        field.onChange(e);
-                      }}
                     />
                   </FormControl>
                   <FormMessage />
@@ -204,12 +192,8 @@ const SignupContent = () => {
                     <Input
                       type="password"
                       placeholder="Password"
+                      autoComplete="new-password"
                       {...field}
-                      value={field.value || ''}
-                      onChange={(e) => {
-                        console.log('Password input changed:', e.target.value);
-                        field.onChange(e);
-                      }}
                     />
                   </FormControl>
                   <FormMessage />
@@ -226,12 +210,8 @@ const SignupContent = () => {
                     <Input
                       type="password"
                       placeholder="Confirm Password"
+                      autoComplete="new-password"
                       {...field}
-                      value={field.value || ''}
-                      onChange={(e) => {
-                        console.log('Confirm password input changed:', e.target.value);
-                        field.onChange(e);
-                      }}
                     />
                   </FormControl>
                   <FormMessage />
