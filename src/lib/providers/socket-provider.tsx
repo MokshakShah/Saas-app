@@ -22,13 +22,32 @@ export const SocketProvider = ({ children }: { children: React.ReactNode }) => {
   const [isConnected, setIsConnected] = useState(false);
 
   useEffect(() => {
-    const socketInstance = new (ClientIO as any)(
-      process.env.NEXT_PUBLIC_SITE_URL!,
-      {
-        path: '/api/socket/io',
-        addTrailingSlash: false,
-      }
-    );
+    const socketUrlFromEnv =
+      process.env.NEXT_PUBLIC_SOCKET_URL ||
+      process.env.NEXT_PUBLIC_SITE_URL ||
+      undefined;
+    const hostname =
+      typeof window !== 'undefined' ? window.location.hostname : '';
+    const isLocalRuntime =
+      hostname === 'localhost' || hostname === '127.0.0.1';
+    const socketUrl =
+      socketUrlFromEnv &&
+      !isLocalRuntime &&
+      socketUrlFromEnv.includes('localhost')
+        ? undefined
+        : socketUrlFromEnv;
+    const isVercelDeployment =
+      process.env.NEXT_PUBLIC_DEPLOY_TARGET === 'vercel' ||
+      socketUrl?.includes('.vercel.app') ||
+      hostname.endsWith('.vercel.app');
+
+    const socketInstance = new (ClientIO as any)(socketUrl, {
+      path: '/api/socket/io',
+      addTrailingSlash: false,
+      // Only apply the polling fallback on Vercel serverless deployments.
+      transports: isVercelDeployment ? ['polling'] : undefined,
+      upgrade: !isVercelDeployment,
+    });
     socketInstance.on('connect', () => {
       setIsConnected(true);
     });
