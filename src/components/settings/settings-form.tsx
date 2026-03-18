@@ -90,14 +90,27 @@ const SettingsForm = () => {
     setLoadingPortal(false);
   };
   //addcollborators
-  const addCollaborator = async (profile: User) => {
-    if (!workspaceId) return;
+  const addCollaborator = async (profile: User): Promise<boolean> => {
+    if (!workspaceId) return false;
     if (subscription?.status !== 'active' && collaborators.length >= 2) {
       setOpen(true);
-      return;
+      return false;
     }
-    await addCollaborators([profile], workspaceId);
+    const response = await addCollaborators([profile], workspaceId);
+    if (response?.error) {
+      toast({
+        variant: 'destructive',
+        title: 'Could not add collaborator',
+        description: response.error,
+      });
+      return false;
+    }
     setCollaborators([...collaborators, profile]);
+    toast({
+      title: 'Collaborator added',
+      description: `${profile.email || 'User'} can now access this workspace.`,
+    });
+    return true;
   };
 
   //remove collaborators
@@ -301,7 +314,7 @@ const SettingsForm = () => {
             <CollaboratorSearch
               existingCollaborators={collaborators}
               getCollaborator={(user) => {
-                addCollaborator(user);
+                return addCollaborator(user);
               }}
             >
               <Button
@@ -312,6 +325,10 @@ const SettingsForm = () => {
                 Add Collaborators
               </Button>
             </CollaboratorSearch>
+            <p className="text-xs text-muted-foreground mt-2">
+              Collaborators are added instantly. They will see this workspace
+              in their dashboard when they sign in.
+            </p>
             <div className="mt-4">
               <span className="text-sm text-muted-foreground">
                 Collaborators {collaborators.length || ''}
@@ -329,12 +346,15 @@ const SettingsForm = () => {
                   collaborators.map((c) => (
                     <div
                       className="p-4 flex
-                      justify-between
-                      items-center
+                      flex-col
+                      gap-3
+                      sm:flex-row
+                      sm:justify-between
+                      sm:items-center
                 "
                       key={c.id}
                     >
-                      <div className="flex gap-4 items-center">
+                      <div className="flex gap-4 items-center min-w-0 w-full">
                         <Avatar>
                           <AvatarImage src="/avatars/7.png" />
                           <AvatarFallback>PJ</AvatarFallback>
@@ -343,10 +363,9 @@ const SettingsForm = () => {
                           className="text-sm 
                           gap-2
                           text-muted-foreground
-                          overflow-hidden
-                          overflow-ellipsis
-                          sm:w-[300px]
-                          w-[140px]
+                          truncate
+                          w-full
+                          sm:max-w-[300px]
                         "
                         >
                           {c.email}
@@ -354,6 +373,8 @@ const SettingsForm = () => {
                       </div>
                       <Button
                         variant="secondary"
+                        size="sm"
+                        className="self-end sm:self-auto"
                         onClick={() => removeCollaborator(c)}
                       >
                         Remove

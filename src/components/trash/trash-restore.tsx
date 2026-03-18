@@ -5,6 +5,7 @@ import { FileIcon, FolderIcon } from 'lucide-react';
 import Link from 'next/link';
 import React, { useEffect, useState } from 'react';
 import { getDeletedFolders, getDeletedFiles } from '@/lib/supabase/queries';
+import { DialogClose } from '@/components/ui/dialog';
 
 const TrashRestore = () => {
   const { state, workspaceId } = useAppState();
@@ -55,27 +56,28 @@ const TrashRestore = () => {
         <>
           <h3 className="text-lg font-semibold mb-4">Folders</h3>
           {folders.map((folder) => (
-            <Link
-              className="hover:bg-muted
-            rounded-md
-            p-2
-            flex
-            items-center
-            justify-between
-            mb-2"
-              href={`/dashboard/${folder.workspaceId}/${folder.id}`}
-              key={folder.id}
-            >
-              <article>
-                <aside className="flex items-center gap-2">
-                  <FolderIcon size={16} />
-                  <span>{folder.title}</span>
-                </aside>
-                <div className="text-xs text-muted-foreground mt-1">
-                  {folder.inTrash}
-                </div>
-              </article>
-            </Link>
+            <DialogClose asChild key={folder.id}>
+              <Link
+                className="hover:bg-muted
+              rounded-md
+              p-2
+              flex
+              items-center
+              justify-between
+              mb-2"
+                href={`/dashboard/${folder.workspaceId}/${folder.id}`}
+              >
+                <article>
+                  <aside className="flex items-center gap-2">
+                    <FolderIcon size={16} />
+                    <span>{folder.title}</span>
+                  </aside>
+                  <div className="text-xs text-muted-foreground mt-1">
+                    {folder.inTrash}
+                  </div>
+                </article>
+              </Link>
+            </DialogClose>
           ))}
         </>
       )}
@@ -83,21 +85,22 @@ const TrashRestore = () => {
         <>
           <h3 className="text-lg font-semibold mb-4 mt-6">Files</h3>
           {files.map((file) => (
-            <Link
-              key={file.id}
-              className="hover:bg-muted rounded-md p-2 flex items-center justify-between mb-2"
-              href={`/dashboard/${file.workspaceId}/${file.folderId}/${file.id}`}
-            >
-              <article>
-                <aside className="flex items-center gap-2">
-                  <FileIcon size={16} />
-                  <span>{file.title}</span>
-                </aside>
-                <div className="text-xs text-muted-foreground mt-1">
-                  {file.inTrash}
-                </div>
-              </article>
-            </Link>
+            <DialogClose asChild key={file.id}>
+              <Link
+                className="hover:bg-muted rounded-md p-2 flex items-center justify-between mb-2"
+                href={`/dashboard/${file.workspaceId}/${file.folderId}/${file.id}`}
+              >
+                <article>
+                  <aside className="flex items-center gap-2">
+                    <FileIcon size={16} />
+                    <span>{file.title}</span>
+                  </aside>
+                  <div className="text-xs text-muted-foreground mt-1">
+                    {file.inTrash}
+                  </div>
+                </article>
+              </Link>
+            </DialogClose>
           ))}
         </>
       )}

@@ -56,31 +56,36 @@ const HomePage = () => {
           </Button>
         </div>
         <div
-          className="md:mt-[-90px]
-          sm:w-full
-          w-[750px]
+          className="w-full
+          max-w-[1150px]
+          px-2
+          sm:px-0
+          md:mt-[-90px]
           flex
           justify-center
           items-center
-          mt-[-40px]
+          mt-[-20px]
+          sm:mt-[-40px]
           relative
-          sm:ml-0
-          ml-[-50px]
+          ml-0
         "
         >
           <Image
             src={Banner}
             alt="Application Banner"
+            className="h-auto w-full max-w-[1100px] object-contain"
           />
           <div
             className="bottom-0
-            top-[50%]
+            top-[45%]
+            sm:top-[50%]
             bg-gradient-to-t
             dark:from-background
             left-0
             right-0
             absolute
             z-10
+            pointer-events-none
            
           "
           ></div>

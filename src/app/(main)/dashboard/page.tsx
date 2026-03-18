@@ -1,9 +1,13 @@
 import React from 'react';
 import { createClient } from '@/lib/supabase/server';
-import db from '@/lib/supabase/db';
 import { redirect } from 'next/navigation';
 import DashboardSetup from '@/components/dashboard-setup/dashboard-setup';
-import { getUserSubscriptionStatus } from '@/lib/supabase/queries';
+import {
+  getCollaboratingWorkspaces,
+  getPrivateWorkspaces,
+  getSharedWorkspaces,
+  getUserSubscriptionStatus,
+} from '@/lib/supabase/queries';
 
 const DashboardPage = async () => {
   const supabase = await createClient();
@@ -14,14 +18,23 @@ const DashboardPage = async () => {
 
   if (!user) return;
 
-  const workspace = await db.query.workspaces.findFirst({
-    where: (workspace, { eq }) => eq(workspace.workspaceOwner, user.id),
-  });
-
   const { data: subscription, error: subscriptionError } =
     await getUserSubscriptionStatus(user.id);
 
   if (subscriptionError) return;
+
+  const [privateWorkspaces, collaboratingWorkspaces, sharedWorkspaces] =
+    await Promise.all([
+      getPrivateWorkspaces(user.id),
+      getCollaboratingWorkspaces(user.id),
+      getSharedWorkspaces(user.id),
+    ]);
+
+  const workspace =
+    privateWorkspaces[0] ||
+    collaboratingWorkspaces[0] ||
+    sharedWorkspaces[0] ||
+    null;
 
   if (!workspace)
     return (

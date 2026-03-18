@@ -1,7 +1,7 @@
 'use client';
 import { useSupabaseUser } from '@/lib/providers/supabase-user-provider';
 import { User } from '@/lib/supabase/supabase.types';
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   Sheet,
   SheetContent,
@@ -10,17 +10,17 @@ import {
   SheetTitle,
   SheetTrigger,
 } from '@/components/ui/sheet';
-import { Label } from '../ui/label';
 import { Search } from 'lucide-react';
 import { Input } from '../ui/input';
 import { ScrollArea } from '../ui/scroll-area';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 import { Button } from '../ui/button';
 import { getUsersFromSearch } from '@/lib/supabase/queries';
+import { createClient } from '@/lib/supabase/browser';
 
 interface CollaboratorSearchProps {
   existingCollaborators: User[] | [];
-  getCollaborator: (collaborator: User) => void;
+  getCollaborator: (collaborator: User) => Promise<boolean> | boolean;
   children: React.ReactNode;
 }
 
@@ -30,6 +30,9 @@ const CollaboratorSearch: React.FC<CollaboratorSearchProps> = ({
   getCollaborator,
 }) => {
   const { user } = useSupabaseUser();
+  const supabase = useMemo(() => createClient(), []);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [open, setOpen] = useState(false);
   const [searchResults, setSearchResults] = useState<User[] | []>([]);
   const [isSearching, setIsSearching] = useState(false);
   const timerRef = useRef<ReturnType<typeof setTimeout>>();
@@ -41,12 +44,28 @@ const CollaboratorSearch: React.FC<CollaboratorSearchProps> = ({
     };
   }, []);
 
+  useEffect(() => {
+    if (user?.id) {
+      setCurrentUserId(user.id);
+      return;
+    }
+
+    const getCurrentUser = async () => {
+      const {
+        data: { user: authUser },
+      } = await supabase.auth.getUser();
+
+      setCurrentUserId(authUser?.id || null);
+    };
+
+    getCurrentUser();
+  }, [supabase, user?.id]);
+
   const onChangeHandler = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (timerRef.current) clearTimeout(timerRef.current);
-    
+
     const searchValue = e.target.value.trim();
-    console.log('Search input changed:', searchValue);
-    
+
     if (searchValue.length === 0) {
       setSearchResults([]);
       setIsSearching(false);
@@ -54,14 +73,10 @@ const CollaboratorSearch: React.FC<CollaboratorSearchProps> = ({
     }
 
     setIsSearching(true);
-    
+
     timerRef.current = setTimeout(async () => {
       try {
-        console.log('Searching for users with:', searchValue);
         const res = await getUsersFromSearch(searchValue);
-        console.log('Search results from database:', res);
-        console.log('Current user ID:', user?.id);
-        console.log('Existing collaborators:', existingCollaborators);
         setSearchResults(res);
       } catch (error) {
         console.error('Error searching users:', error);
@@ -72,16 +87,18 @@ const CollaboratorSearch: React.FC<CollaboratorSearchProps> = ({
     }, 450);
   };
 
-  const addCollaborator = (selectedUser: User) => {
-    getCollaborator(selectedUser);
-    // Clear search results after adding
-    setSearchResults([]);
+  const addCollaborator = async (selectedUser: User) => {
+    const added = await getCollaborator(selectedUser);
+    if (added) {
+      setSearchResults([]);
+      setOpen(false);
+    }
   };
 
   return (
-    <Sheet>
+    <Sheet open={open} onOpenChange={setOpen}>
       <SheetTrigger asChild className="w-full">{children}</SheetTrigger>
-      <SheetContent className="w-[400px] sm:w-[540px]">
+      <SheetContent className="w-full max-w-[540px]">
         <SheetHeader>
           <SheetTitle>Search Collaborator</SheetTitle>
           <SheetDescription>
@@ -132,29 +149,29 @@ const CollaboratorSearch: React.FC<CollaboratorSearchProps> = ({
                   (existing) => existing.id === result.id
                 )
             )
-            .filter((result) => result.id !== user?.id)
+            .filter((result) => result.id !== currentUserId)
             .map((searchUser) => (
               <div
                 key={searchUser.id}
-                className="p-4 flex justify-between items-center border-b border-border/50 last:border-b-0"
+                className="p-4 flex flex-col gap-3 sm:flex-row sm:justify-between sm:items-center border-b border-border/50 last:border-b-0"
               >
-                <div className="flex gap-4 items-center">
+                <div className="flex gap-4 items-center min-w-0 w-full">
                   <Avatar className="w-8 h-8">
                     <AvatarImage src={searchUser.avatarUrl || "/avatars/7.png"} />
                     <AvatarFallback>
                       {searchUser.email?.charAt(0).toUpperCase() || 'U'}
                     </AvatarFallback>
                   </Avatar>
-                  <div className="flex flex-col">
+                  <div className="flex flex-col min-w-0 w-full">
                     <div className="text-sm font-medium">
                       {searchUser.fullName || searchUser.email?.split('@')[0] || 'No name'}
                     </div>
                     <div
                       className="text-xs 
                       text-muted-foreground
-                      overflow-hidden 
-                      overflow-ellipsis 
-                      w-[180px]
+                      truncate
+                      w-full
+                      sm:max-w-[220px]
                       "
                     >
                       {searchUser.email}
@@ -164,6 +181,7 @@ const CollaboratorSearch: React.FC<CollaboratorSearchProps> = ({
                 <Button
                   variant="secondary"
                   size="sm"
+                  className="self-end sm:self-auto"
                   onClick={() => addCollaborator(searchUser)}
                 >
                   Add

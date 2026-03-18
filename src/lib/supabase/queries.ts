@@ -252,7 +252,7 @@ export const getPrivateWorkspaces = async (userId: string) => {
       and(
         notExists(
           db
-            .select()
+            .select({ workspaceId: collaborators.workspaceId })
             .from(collaborators)
             .where(eq(collaborators.workspaceId, workspaces.id))
         ),
@@ -323,11 +323,18 @@ export const getFiles = async (folderId: string) => {
 export const addCollaborators = async (users: User[], workspaceId: string) => {
   try {
     for (const user of users) {
-      const userExists = await db.query.collaborators.findFirst({
-        where: (u, { eq }) =>
-          and(eq(u.userId, user.id), eq(u.workspaceId, workspaceId)),
-      });
-      if (!userExists) {
+      const userExists = await db
+        .select({ userId: collaborators.userId })
+        .from(collaborators)
+        .where(
+          and(
+            eq(collaborators.userId, user.id),
+            eq(collaborators.workspaceId, workspaceId)
+          )
+        )
+        .limit(1);
+
+      if (!userExists.length) {
         await db.insert(collaborators).values({ workspaceId, userId: user.id });
       }
     }
@@ -344,11 +351,18 @@ export const removeCollaborators = async (
 ) => {
   try {
     for (const user of users) {
-      const userExists = await db.query.collaborators.findFirst({
-        where: (u, { eq }) =>
-          and(eq(u.userId, user.id), eq(u.workspaceId, workspaceId)),
-      });
-      if (userExists) {
+      const userExists = await db
+        .select({ userId: collaborators.userId })
+        .from(collaborators)
+        .where(
+          and(
+            eq(collaborators.userId, user.id),
+            eq(collaborators.workspaceId, workspaceId)
+          )
+        )
+        .limit(1);
+
+      if (userExists.length) {
         await db
           .delete(collaborators)
           .where(
@@ -457,7 +471,7 @@ export const updateWorkspace = async (
 
 export const getCollaborators = async (workspaceId: string) => {
   const response = await db
-    .select()
+    .select({ userId: collaborators.userId })
     .from(collaborators)
     .where(eq(collaborators.workspaceId, workspaceId));
   if (!response.length) return [];

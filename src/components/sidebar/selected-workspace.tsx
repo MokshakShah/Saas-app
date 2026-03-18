@@ -4,15 +4,20 @@ import { createClient } from '@/lib/supabase/browser';
 import Image from 'next/image';
 import Link from 'next/link';
 import React, { useEffect, useState } from 'react';
+import { ChevronDown, ChevronUp } from 'lucide-react';
 
 interface SelectedWorkspaceProps {
   workspace: workspace;
   onClick?: (option: workspace) => void;
+  isTrigger?: boolean;
+  isOpen?: boolean;
 }
 
 const SelectedWorkspace: React.FC<SelectedWorkspaceProps> = ({
   workspace,
   onClick,
+  isTrigger = false,
+  isOpen = false,
 }) => {
   const supabase = createClient();
   const [workspaceLogo, setWorkspaceLogo] = useState('/cypresslogo.svg');
@@ -24,6 +29,55 @@ const SelectedWorkspace: React.FC<SelectedWorkspaceProps> = ({
       setWorkspaceLogo(path);
     }
   }, [workspace, supabase.storage]);
+  const content = (
+    <>
+      <Image
+        src={workspaceLogo}
+        alt="workspace logo"
+        width={26}
+        height={26}
+        objectFit="cover"
+      />
+      <div className="flex flex-col min-w-0">
+        <p
+          className="text-lg 
+          w-[170px] 
+          overflow-hidden 
+          overflow-ellipsis 
+          whitespace-nowrap"
+        >
+          {workspace.title}
+        </p>
+      </div>
+      {isTrigger && (
+        <div className="ml-auto text-muted-foreground">
+          {isOpen ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+        </div>
+      )}
+    </>
+  );
+
+  if (isTrigger) {
+    return (
+      <div
+        className="flex
+        rounded-md
+        border
+        border-border
+        hover:bg-muted
+        transition-all
+        flex-row
+        p-2
+        gap-4
+        cursor-pointer
+        items-center
+        my-2"
+      >
+        {content}
+      </div>
+    );
+  }
+
   return (
     <Link
       href={`/dashboard/${workspace.id}`}
@@ -42,24 +96,7 @@ const SelectedWorkspace: React.FC<SelectedWorkspaceProps> = ({
       items-center 
       my-2"
     >
-      <Image
-        src={workspaceLogo}
-        alt="workspace logo"
-        width={26}
-        height={26}
-        objectFit="cover"
-      />
-      <div className="flex flex-col">
-        <p
-          className="text-lg 
-        w-[170px] 
-        overflow-hidden 
-        overflow-ellipsis 
-        whitespace-nowrap"
-        >
-          {workspace.title}
-        </p>
-      </div>
+      {content}
     </Link>
   );
 };

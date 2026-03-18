@@ -57,13 +57,24 @@ const WorkspaceDropdown: React.FC<WorkspaceDropdownProps> = ({
   "
     >
       <div>
-        <span onClick={() => setIsOpen(!isOpen)}>
+        <button
+          type="button"
+          className="w-full"
+          onClick={() => setIsOpen(!isOpen)}
+          aria-haspopup="menu"
+          aria-expanded={isOpen}
+          aria-label="Select workspace"
+        >
           {selectedOption ? (
-            <SelectedWorkspace workspace={selectedOption} />
+            <SelectedWorkspace
+              workspace={selectedOption}
+              isTrigger
+              isOpen={isOpen}
+            />
           ) : (
             'Select a workspace'
           )}
-        </span>
+        </button>
       </div>
       {isOpen && (
         <div
