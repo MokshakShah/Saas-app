@@ -31,8 +31,9 @@ const WorkspaceCreator = () => {
   const [collaborators, setCollaborators] = useState<User[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
-  const addCollaborator = (user: User) => {
+  const addCollaborator = (user: User): boolean => {
     setCollaborators([...collaborators, user]);
+    return true;
   };
 
   const removeCollaborator = (user: User) => {
@@ -151,7 +152,7 @@ const WorkspaceCreator = () => {
           <CollaboratorSearch
             existingCollaborators={collaborators}
             getCollaborator={(user) => {
-              addCollaborator(user);
+              return addCollaborator(user);
             }}
           >
             <Button
